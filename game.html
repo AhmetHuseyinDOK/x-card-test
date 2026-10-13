@@ -1,0 +1,85 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Flappy Post</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  canvas{display:block;width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated}
+</style>
+</head><body>
+<canvas id="c" width="640" height="480"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d');
+const W = 640, H = 480, GAP = 140, PIPE_W = 64, SPEED = 2.6, GRAV = 0.42, FLAP = -7.2;
+let bird, pipes, score, best = +(localStorage.getItem('fp-best') || 0), state = 'ready', t = 0;
+
+function reset() {
+  bird = { x: 160, y: H / 2, vy: 0 };
+  pipes = []; score = 0; t = 0;
+}
+function flap() {
+  if (state === 'ready') state = 'play';
+  if (state === 'dead') { reset(); state = 'ready'; return; }
+  bird.vy = FLAP;
+}
+addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
+addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); } });
+
+function update() {
+  t++;
+  if (state !== 'play') { bird.y = H / 2 + Math.sin(t / 12) * 8; return; }
+  bird.vy += GRAV; bird.y += bird.vy;
+  if (t % 90 === 0) pipes.push({ x: W, top: 60 + Math.random() * (H - GAP - 160), passed: false });
+  for (const p of pipes) {
+    p.x -= SPEED;
+    if (!p.passed && p.x + PIPE_W < bird.x) { p.passed = true; score++; }
+    const hitX = bird.x + 14 > p.x && bird.x - 14 < p.x + PIPE_W;
+    const hitY = bird.y - 12 < p.top || bird.y + 12 > p.top + GAP;
+    if (hitX && hitY) die();
+  }
+  pipes = pipes.filter(p => p.x > -PIPE_W);
+  if (bird.y > H - 40 || bird.y < 0) die();
+}
+function die() {
+  state = 'dead';
+  if (score > best) { best = score; localStorage.setItem('fp-best', best); }
+}
+
+function draw() {
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1d9bf0'); g.addColorStop(1, '#8ecdf8');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (const p of pipes) {
+    x.fillStyle = '#0f1419';
+    x.fillRect(p.x, 0, PIPE_W, p.top);
+    x.fillRect(p.x, p.top + GAP, PIPE_W, H - p.top - GAP);
+    x.fillStyle = '#2f3336';
+    x.fillRect(p.x - 4, p.top - 18, PIPE_W + 8, 18);
+    x.fillRect(p.x - 4, p.top + GAP, PIPE_W + 8, 18);
+  }
+  x.fillStyle = '#e7e9ea'; x.fillRect(0, H - 40, W, 40);
+  // bird
+  x.save(); x.translate(bird.x, bird.y); x.rotate(Math.max(-0.5, Math.min(1.2, bird.vy / 10)));
+  x.fillStyle = '#ffd400'; x.beginPath(); x.arc(0, 0, 15, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(6, -5, 6, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#000'; x.beginPath(); x.arc(8, -5, 3, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#f4900c'; x.beginPath(); x.moveTo(12, 1); x.lineTo(24, 4); x.lineTo(12, 8); x.fill();
+  x.restore();
+  // text
+  x.textAlign = 'center'; x.fillStyle = '#fff'; x.strokeStyle = '#0f1419'; x.lineWidth = 6;
+  x.font = 'bold 48px system-ui, sans-serif';
+  if (state === 'play') { x.strokeText(score, W / 2, 70); x.fillText(score, W / 2, 70); }
+  x.font = 'bold 30px system-ui, sans-serif';
+  const msg = state === 'ready' ? 'Tap or press space to flap'
+            : state === 'dead' ? `Score ${score} · Best ${best} · tap to retry` : '';
+  if (msg) { x.strokeText(msg, W / 2, H / 2 - 60); x.fillText(msg, W / 2, H / 2 - 60); }
+  if (state === 'ready') {
+    x.font = 'bold 52px system-ui, sans-serif';
+    x.strokeText('Flappy Post', W / 2, 110); x.fillText('Flappy Post', W / 2, 110);
+  }
+}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+reset(); loop();
+</script>
+</body></html>
