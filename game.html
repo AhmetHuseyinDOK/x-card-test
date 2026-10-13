@@ -35,7 +35,6 @@ function onInput(e) {
 }
 for (const type of ['touchstart', 'pointerdown', 'mousedown'])
   document.addEventListener(type, onInput, { passive: false });
-addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); } });
 
 function update() {
   t++;
@@ -82,7 +81,7 @@ function draw() {
   x.font = 'bold 48px system-ui, sans-serif';
   if (state === 'play') { x.strokeText(score, W / 2, 70); x.fillText(score, W / 2, 70); }
   x.font = 'bold 30px system-ui, sans-serif';
-  const msg = state === 'ready' ? 'Tap or press space to flap'
+  const msg = state === 'ready' ? 'Tap to flap'
             : state === 'dead' ? `Score ${score} · Best ${best} · tap to retry` : '';
   if (msg) { x.strokeText(msg, W / 2, H / 2 - 60); x.fillText(msg, W / 2, H / 2 - 60); }
   if (state === 'ready') {
