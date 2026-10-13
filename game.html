@@ -5,7 +5,7 @@
 <title>Flappy Post</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
-  canvas{display:block;width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated}
+  canvas{display:block;cursor:pointer;touch-action:none;width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated}
 </style>
 </head><body>
 <canvas id="c" width="640" height="480"></canvas>
@@ -23,7 +23,18 @@ function flap() {
   if (state === 'dead') { reset(); state = 'ready'; return; }
   bird.vy = FLAP;
 }
-addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
+// Mobile browsers and in-app webviews disagree on which of touch/pointer/mouse
+// events reach a framed page, so listen to all of them and drop the duplicates.
+let lastInput = 0;
+function onInput(e) {
+  if (e.cancelable) e.preventDefault();
+  const now = performance.now();
+  if (now - lastInput < 120) return;
+  lastInput = now;
+  flap();
+}
+for (const type of ['touchstart', 'pointerdown', 'mousedown'])
+  document.addEventListener(type, onInput, { passive: false });
 addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); } });
 
 function update() {
